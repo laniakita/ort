@@ -57,7 +57,12 @@ pub fn static_link_prerequisites(source: BinariesSource) {
 			// Dawn cannot be linked statically yet so it's shipped as a dylib we need to link to.
 			println!("cargo:rustc-link-lib=webgpu_dawn");
 		}
+	} else {
+		if cfg!(feature = "webgpu") && !target_triple.contains("wasm32") {
+			println!("cargo:rustc-link-lib=webgpu_dawn");
+		}
 	}
+	
 }
 
 fn add_search_dir<P: AsRef<Path>>(base: P) {
@@ -195,7 +200,13 @@ pub fn static_link(base_lib_dir: &Path) -> bool {
 
 			add_search_dir(transform_dep(external_lib_dir.join("onnx-build"), &profile));
 			println!("cargo:rustc-link-lib=static=onnx");
-			println!("cargo:rustc-link-lib=static=onnx_proto");
+
+			// iOS/MacOS builds of ONNX Runtime 1.24+ ship `libonnx_proto.a` (`onnx-ml.pb.o`, `onnx-data.pb.o`, `onnx-operators-ml.pb.o`) with `libonnx.a`.
+			// Linking to onnx_proto in such cases would result in duplicate symbols.
+			if !target_os.contains("ios") || !target_os.contains("darwin") {
+				println!("cargo:rustc-link-lib=static=onnx_proto");
+			} 
+
 
 			// some builds of ONNX Runtime, particularly the default no-EP windows build, don't require nsync
 			if !has_vcpkg_link {
@@ -334,7 +345,7 @@ pub fn static_link(base_lib_dir: &Path) -> bool {
 			optional_link_lib(&lib_dir, "onnxruntime_providers_azure");
 			if optional_link_lib(&lib_dir, "onnxruntime_providers_coreml") {
 				println!("cargo:rustc-link-lib=framework=CoreML");
-				println!("cargo:rustc-link-lib=coreml_proto");
+				optional_link_lib(&lib_dir, "coreml_proto");
 			}
 			if optional_link_lib(&lib_dir, "onnxruntime_providers_dml") {
 				println!("cargo:rustc-link-lib=dxguid");

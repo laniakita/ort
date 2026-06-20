@@ -198,7 +198,7 @@ pub fn static_link(base_lib_dir: &Path) -> bool {
 
 			// iOS/MacOS builds of ONNX Runtime 1.24+ ship `libonnx_proto.a` (`onnx-ml.pb.o`, `onnx-data.pb.o`, `onnx-operators-ml.pb.o`) with `libonnx.a`.
 			// Linking to onnx_proto in such cases would result in duplicate symbols.
-			if !target_os.contains("ios") || !target_os.contains("macos") {
+			if !target_os.contains("ios") && !target_os.contains("macos") {
 				println!("cargo:rustc-link-lib=static=onnx_proto");
 			} 
 
